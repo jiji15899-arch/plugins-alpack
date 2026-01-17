@@ -900,6 +900,16 @@ class PressLearn_Plugin {
             'presslearn-settings',
             array($this, 'render_settings_page')
         );
+
+        add_submenu_page(
+          'presslearn-settings',
+            'AL Pack AI 블로그 포스팅',
+            'AI 블로그 포스팅',
+            'manage_options',
+            'presslearn-ai-blog-posting',
+            array(this, 'render_ai-settings-page')
+        );
+ 
         
         if ($this->is_activated) {
             add_submenu_page(
@@ -4617,181 +4627,4 @@ function presslearn_output_footer_code() {
 }
 
 
-/* ==========================================
- * ⚡ ALPACK AI Extension 통합 코드 (여기서부터 추가)
- * ========================================== */
-
-// 1. 상수 정의 (경로 충돌 방지)
-if (!defined('PL_AI_URL')) define('PL_AI_URL', plugin_dir_url(__FILE__));
-
-// 2. 관리자 메뉴 등록 (AI 설정 페이지)
-add_action('admin_menu', function() {
-    add_menu_page(
-        'ALPACK AI 설정',
-        'ALPACK AI',
-        'manage_options',
-        'presslearn-ai-settings',
-        'pl_ai_render_settings_page',
-        'dashicons-superhero',
-        30
-    );
-});
-
-// 3. 메타박스 등록 (글 편집 화면 우측 패널)
-add_action('add_meta_boxes', function() {
-    add_meta_box(
-        'pl_ai_metabox', 
-        '⚡ PressLearn AI Masterpiece', 
-        'pl_ai_render_metabox', 
-        ['post', 'page'], 
-        'side', 
-        'high'
-    );
-});
-
-// 4. 스크립트 및 스타일 로드 (assets 폴더 연동)
-add_action('admin_enqueue_scripts', function($hook) {
-    // 글 작성 화면과 AI 설정 페이지에서만 로드
-    if (!in_array($hook, ['post.php', 'post-new.php', 'toplevel_page_presslearn-ai-settings'])) {
-        return;
-    }
-
-    // CSS 로드
-    wp_enqueue_style('pl-ai-style', PL_AI_URL . 'assets/style.css', [], '1.0.0');
-
-    // JS 로드
-    wp_enqueue_script('pl-ai-script', PL_AI_URL . 'assets/script.js', ['jquery'], '1.0.0', true);
     
-    // JS에 데이터 전달 (Ajax URL 등)
-    wp_localize_script('pl-ai-script', 'plAiData', [
-        'ajaxurl'   => admin_url('admin-ajax.php'),
-        'workerUrl' => 'https://wpautoblogpostai.jiji15899.workers.dev',
-        'nonce'     => wp_create_nonce('pl_ai_nonce')
-    ]);
-});
-
-// 5. 메타박스 HTML 렌더링 (기존 metabox-template.php 내용 통합)
-function pl_ai_render_metabox($post) {
-    ?>
-    <div id="pl-ai-container">
-        <div class="pl-field">
-            <label>🎯 글 주제</label>
-            <input type="text" id="pl_topic" placeholder="예: 미국 정부지원금 종류" style="width:100%;">
-        </div>
-
-        <div class="pl-field">
-            <label>🌍 언어 및 국가 설정</label>
-            <select id="pl_lang_select" style="width:100%;">
-                <option value="ko">한국 (대한민국)</option>
-                <option value="en">USA (United States)</option>
-                <option value="ja">Japan (日本)</option>
-            </select>
-        </div>
-
-        <div class="pl-field">
-            <label>📝 포스팅 모드</label>
-            <select id="pl_mode_select" style="width:100%;">
-                <option value="adsense">💎 애드센스 승인용 (1500자+)</option>
-                <option value="subsidy">💰 정부지원금 (표 포함)</option>
-                <option value="pasona">🔥 수익형 (PASONA)</option>
-            </select>
-        </div>
-
-        <button type="button" id="pl_generate_btn" class="pl-btn-main">🚀 마스터피스 생성</button>
-
-        <div id="pl_analysis_report" style="display:none; margin-top:15px;">
-            <h4>📊 ALPACK AI 분석</h4>
-            <div class="pl-score-row"><span>SEO 최적화</span><b id="pl_s_seo">0%</b></div>
-            <div class="pl-score-row"><span>승인 예상도</span><b id="pl_s_ads">0%</b></div>
-            <div class="pl-score-row"><span>수익률 지수</span><b id="pl_s_rev">0%</b></div>
-        </div>
-
-        <div id="pl_progress_wrap" style="display:none;">
-            <div class="pl-progress-bar"><div id="pl_bar_fill"></div></div>
-            <div id="pl_timer_val">00.0s</div>
-        </div>
-        
-        <input type="hidden" id="post_ID" value="<?php echo esc_attr($post->ID); ?>">
-    </div>
-    <?php
-}
-
-// 6. 설정 페이지 HTML 렌더링 (기존 admin-settings.php 내용 통합)
-function pl_ai_render_settings_page() {
-    if (isset($_POST['pl_save'])) {
-        update_option('pl_ai_base_lang', sanitize_text_field($_POST['pl_base_lang']));
-        echo '<div class="updated"><p>설정이 저장되었습니다.</p></div>';
-    }
-    $current_lang = get_option('pl_ai_base_lang', 'ko');
-    ?>
-    <div class="wrap">
-        <h1>⚡ ALPACK AI 설정</h1>
-        <form method="post" action="">
-            <table class="form-table">
-                <tr valign="top">
-                    <th scope="row">기본 언어 설정</th>
-                    <td>
-                        <select name="pl_base_lang">
-                            <option value="ko" <?php selected($current_lang, 'ko'); ?>>한국어</option>
-                            <option value="en" <?php selected($current_lang, 'en'); ?>>English</option>
-                            <option value="ja" <?php selected($current_lang, 'ja'); ?>>日本語</option>
-                        </select>
-                        <p class="description">AI가 글을 작성할 때 사용할 기본 언어를 선택하세요.</p>
-                    </td>
-                </tr>
-            </table>
-            <?php submit_button('설정 저장', 'primary', 'pl_save'); ?>
-        </form>
-    </div>
-    <?php
-}
-
-// 7. 이미지 업로드 Ajax 핸들러
-add_action('wp_ajax_pl_upload_image', 'pl_ai_handle_image_upload');
-function pl_ai_handle_image_upload() {
-    // 보안 검사 (권장)
-    // check_ajax_referer('pl_ai_nonce', 'nonce');
-
-    if (!isset($_POST['base64']) || empty($_POST['base64'])) {
-        wp_send_json_error('No image data');
-    }
-
-    $data = base64_decode($_POST['base64']);
-    $file_name = 'ai_thumb_' . time() . '.jpg';
-    $upload = wp_upload_bits($file_name, null, $data);
-    
-    if ($upload['error']) {
-        wp_send_json_error($upload['error']);
-    }
-
-    $file_path = $upload['file'];
-    $file_type = wp_check_filetype($file_name, null);
-    
-    $attachment = [
-        'post_mime_type' => $file_type['type'],
-        'post_title'     => sanitize_file_name($file_name),
-        'post_content'   => '',
-        'post_status'    => 'inherit'
-    ];
-
-    require_once(ABSPATH . 'wp-admin/includes/image.php');
-    require_once(ABSPATH . 'wp-admin/includes/file.php');
-    require_once(ABSPATH . 'wp-admin/includes/media.php');
-
-    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
-    $attach_id = wp_insert_attachment($attachment, $file_path, $post_id);
-    
-    if (!is_wp_error($attach_id)) {
-        require_once(ABSPATH . 'wp-admin/includes/image.php');
-        $attach_data = wp_generate_attachment_metadata($attach_id, $file_path);
-        wp_update_attachment_metadata($attach_id, $attach_data);
-        
-        if ($post_id > 0) {
-            set_post_thumbnail($post_id, $attach_id);
-        }
-        
-        wp_send_json_success(['image_id' => $attach_id]);
-    } else {
-        wp_send_json_error($attach_id->get_error_message());
-    }
-}
