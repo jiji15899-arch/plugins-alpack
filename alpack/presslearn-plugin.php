@@ -4656,7 +4656,11 @@ add_action('admin_enqueue_scripts', function($hook) {
         'workerUrl' => 'https://wpautoblogpostai.jiji15899.workers.dev', // 사용자님 워커 주소
         'nonce'     => wp_create_nonce('pl_ai_nonce')
     ]);
+
 });
+}
+}
+}
 
 /* --- ALPACK AI Extension 추가 코드 끝 --- */
 
