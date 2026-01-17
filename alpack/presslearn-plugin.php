@@ -4614,4 +4614,49 @@ function presslearn_output_footer_code() {
             echo "<!-- /PressLearn Footer Code -->\n\n";
         }
     }
-}
+/* --- ALPACK AI Extension 추가 코드 시작 --- */
+
+// 1. 경로 및 URL 상수 정의 (기존에 없다면 추가)
+if (!defined('PL_AI_PATH')) define('PL_AI_PATH', plugin_dir_path(__FILE__));
+if (!defined('PL_AI_URL')) define('PL_AI_URL', plugin_dir_url(__FILE__));
+
+// 2. 외부 로직 파일 로드 (includes 폴더 내 파일들)
+require_once PL_AI_PATH . 'includes/admin-settings.php';
+require_once PL_AI_PATH . 'includes/ai-metabox.php';
+
+// 3. 사이드바 메뉴 등록 (ALPACK 스타일 설정 페이지로 이동)
+add_action('admin_menu', function() {
+    add_menu_page(
+        'ALPACK AI 설정',       // 페이지 제목
+        'ALPACK AI',           // 사이드바 메뉴 이름
+        'manage_options',       // 권한
+        'presslearn-settings',   // 슬러그 (설정 페이지 링크)
+        'pl_ai_render_settings_page', // admin-settings.php에 정의된 콜백 함수
+        'dashicons-superhero',  // 아이콘
+        30                      // 메뉴 위치
+    );
+});
+
+// 4. 필요한 CSS 및 JS 파일 로드 (assets 폴더)
+add_action('admin_enqueue_scripts', function($hook) {
+    // 글 편집 화면과 설정 페이지에서만 스크립트 실행
+    if (!in_array($hook, ['post.php', 'post-new.php', 'toplevel_page_presslearn-settings'])) {
+        return;
+    }
+
+    // CSS 파일 로드
+    wp_enqueue_style('pl-ai-style', PL_AI_URL . 'assets/style.css', [], '2.7.0');
+
+    // JS 파일 로드 및 데이터 전달
+    wp_enqueue_script('pl-ai-script', PL_AI_URL . 'assets/script.js', ['jquery'], '2.7.0', true);
+    
+    // JS에서 사용할 동적 변수 (워커 주소 등) 설정
+    wp_localize_script('pl-ai-script', 'plAiData', [
+        'ajaxurl'   => admin_url('admin-ajax.php'),
+        'workerUrl' => 'https://wpautoblogpostai.jiji15899.workers.dev', // 사용자님 워커 주소
+        'nonce'     => wp_create_nonce('pl_ai_nonce')
+    ]);
+});
+
+/* --- ALPACK AI Extension 추가 코드 끝 --- */
+
